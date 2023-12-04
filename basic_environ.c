@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 
   int count = 2;
   float *in_host_object = (float *)malloc(sizeof(float) * count);
-  float out_host_object = (float *)malloc(sizeof(float) * count);
+  float *out_host_object = (float *)malloc(sizeof(float) * count);
   in_host_object[0] = 2.0;
   in_host_object[1] = 3.0;
 
