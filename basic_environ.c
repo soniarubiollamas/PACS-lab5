@@ -21,7 +21,7 @@
 #endif
 #define cimg_use_jpeg
 #include <iostream>
-#include "/home/a756976/Documents/PACS/Laboratory-5/CImg/CImg.h" // Path to CImg.h
+#include "/home/a756976/Documents/PACS/lab5/CImg/CImg.h" // Path to CImg.h
 using namespace cimg_library;
 
 // check error, in such a case, it exits
