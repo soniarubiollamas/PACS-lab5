@@ -1,11 +1,15 @@
-__kernel void pow_of_two(
-  __global float *in,
-  __global float *out,
-  const unsigned int count){
+__kernel void image_flip(__global unsigned char *image_data,
+                         const int width,
+                         const int height) {
+    int x = get_global_id(0);
+    int y = get_global_id(1);
 
-  int i = get_global_id(0);
+    if (x < width / 2) {
+        int source_index = y * width + x;
+        int target_index = y * width + (width - 1 - x);
 
-  if(i < count){
-    out[i] = in[i] * in[i];
-  }
+        unsigned char temp = image_data[source_index];
+        image_data[source_index] = image_data[target_index];
+        image_data[target_index] = temp;
+    }
 }

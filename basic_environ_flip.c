@@ -35,16 +35,26 @@ void cl_error(cl_int code, const char *string)
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
-
+// program for flipping and image
 int main(int argc, char **argv)
 {
+  if (argc != 5)
+  {
+    printf("Usage: %s <image_path> <output_path> <width> <height>\n", argv[0]);
+  }
+
+  const char *input_image_path = argv[1];
+  const char *output_image_path = argv[2];
+  int width = atoi(argv[3]);
+  int height = atoi(argv[4]);
+
   int err;                // error code returned from api calls
   size_t t_buf = 50;      // size of str_buffer
   char str_buffer[t_buf]; // auxiliary buffer
   size_t e_buf;           // effective size of str_buffer in use
 
-  size_t global_size; // global domain size for our calculation
-  size_t local_size;  // local domain size for our calculation
+  size_t global_size[2]; // global domain size for our calculation
+  size_t local_size[2];  // local domain size for our calculation
 
   const cl_uint num_platforms_ids = 10;                         // max of allocatable platforms
   cl_platform_id platforms_ids[num_platforms_ids];              // array of platforms
@@ -98,6 +108,10 @@ int main(int argc, char **argv)
   }
   // **Task**: print on the screen the cache size, global mem size, local memsize, max work group size, profiling timer resolution and ... of each device
 
+  // Read the image using CImg
+  CImg<unsigned char> img(width, height, 1, 3); // Create an empty image with the specified width and height
+  img.load_jpeg(input_image_path);              // Load the image from the specified file
+
   // 3. Create a context, with a device
   cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platforms_ids[0], 0};
   context = clCreateContext(properties, n_devices[0], devices_ids[0], NULL, NULL, &err);
@@ -144,7 +158,8 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  cl_kernel kernel = clCreateKernel(program, "pow_of_two", &err);
+  // Create the kernel
+  cl_kernel kernel = clCreateKernel(program, "image_flip", &err);
 
   // cl_kernel clCreateKernel(cl_program program, const char *kernel_name, cl_int *errcode_ret)
   cl_error(err, "Failed to create kernel from the program\n");
@@ -155,35 +170,29 @@ int main(int argc, char **argv)
   // float *in_host_object = img.data();
   // float out_host_object = (float) malloc(sizeof(float) * count);
 
-  int count = 2;
-  float *in_host_object = (float *)malloc(sizeof(float) * count);
-  float *out_host_object = (float *)malloc(sizeof(float) * count);
-  in_host_object[0] = 2.0;
-  in_host_object[1] = 3.0;
-
-  // Create OpenCL buffer visible to the OpenCl runtime
-
-  cl_mem in_device_object = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float) * count, NULL, &err);
-  // cl_mem clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_int *errcode_ret)
+  // Create memory buffers for the image data
+  cl_mem in_image_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(unsigned char) * width * height * 3, img.data(), &err);
   cl_error(err, "Failed to create memory buffer at device\n");
-  cl_mem out_device_object = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, &err);
+  cl_mem out_image_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(unsigned char) * width * height * 3, NULL, &err);
   cl_error(err, "Failed to create memory buffer at device\n");
 
-  // Copy input data to the memory buffer
+  // Copy the image data to the memory buffer (from host to device)
   // Write date into the memory object
-  err = clEnqueueWriteBuffer(command_queue, in_device_object, CL_TRUE, 0, sizeof(float) * count,
-                             in_host_object, 0, NULL, NULL);
+  err = clEnqueueWriteBuffer(command_queue, in_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * 3,
+                             img.data(), 0, NULL, NULL);
   cl_error(err, "Failed to enqueue a write command\n");
 
   // Set the arguments to our compute kernel
-  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &in_device_object);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &in_image_buffer);
   cl_error(err, "Failed to set argument 0\n");
-  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &out_device_object);
+  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &out_image_buffer);
   cl_error(err, "Failed to set argument 1\n");
   // Third, the number of elements of the input and output arrays.
-  err = clSetKernelArg(kernel, 2, sizeof(int), &count);
+  err = clSetKernelArg(kernel, 2, sizeof(int), &width);
   // cl_int clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value)
   cl_error(err, "Failed to set argument 2\n");
+  err = clSetKernelArg(kernel, 3, sizeof(int), &height);
+  cl_error(err, "Failed to set argument 3\n");
 
   // Launch Kernel
   local_size = 128;
@@ -191,18 +200,19 @@ int main(int argc, char **argv)
   err = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
   cl_error(err, "Failed to launch kernel to the device");
 
-  // Read data form device memory back to host memory
-  err = clEnqueueReadBuffer(command_queue, out_device_object, CL_TRUE, 0, sizeof(float) * count, out_host_object, 0, NULL, NULL);
-  cl_error(err, "Failed to enqueue a read command\n");
+  // Read the modified image data back to the host (from device to host)
+  unsigned char *out_image_data = (unsigned char *)malloc(sizeof(unsigned char) * width * height * 3);
+  err = clEnqueueReadBuffer(command_queue, out_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * 3, out_image_data, 0, NULL, NULL);
+  cl_error(err, "Failed to read modified image data from device\n");
 
-  // Print the results
-  for (int i = 0; i < count; i++)
-  {
-    printf("%f\n", out_host_object[i]);
-  }
+  // Save the modified image data to the output path
+  CImg<unsigned char> out_image(out_image_data, width, height, 1, 3);
+  out_image.save_jpeg(output_image_path);
+
+  free(out_image_data); // Free the memory allocated for the output image data
 
   // Release OpenCL resources
-  clReleaseMemObject(in_device_object);
+  clReleaseMemObject(in_image_buffer);
   clReleaseMemObject(out_device_object);
   clReleaseProgram(program);
   clReleaseKernel(kernel);
