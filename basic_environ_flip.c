@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
   // Release OpenCL resources
   clReleaseMemObject(in_image_buffer);
-  clReleaseMemObject(out_device_object);
+  clReleaseMemObject(out_image_buffer);
   clReleaseProgram(program);
   clReleaseKernel(kernel);
   clReleaseCommandQueue(command_queue);
