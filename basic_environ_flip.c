@@ -246,13 +246,11 @@ int main(int argc, char **argv)
   // Set the arguments to our compute kernel
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &in_image_buffer);
   cl_error(err, "Failed to set argument 0\n");
-  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &out_image_buffer);
-  cl_error(err, "Failed to set argument 1\n");
   // Third, the number of elements of the input and output arrays.
-  err = clSetKernelArg(kernel, 2, sizeof(int), &width);
+  err = clSetKernelArg(kernel, 1, sizeof(int), &width);
   // cl_int clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value)
   cl_error(err, "Failed to set argument 2\n");
-  err = clSetKernelArg(kernel, 3, sizeof(int), &height);
+  err = clSetKernelArg(kernel, 2, sizeof(int), &height);
   cl_error(err, "Failed to set argument 3\n");
 
   // Launch Kernel
