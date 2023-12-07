@@ -254,8 +254,25 @@ int main(int argc, char **argv)
   cl_error(err, "Failed to set argument 3\n");
 
   // Launch Kernel
-  size_t local_size[2] = {128, 128}; // Define local_size as an array of size_t
-  size_t global_size[2] = {static_cast<size_t>(count), static_cast<size_t>(count)};
+
+  size_t max_work_group_size = 256;
+  size_t local_size_x = max_work_group_size; // Establecer el tamaño local máximo para el eje X
+  size_t local_size_y = 1;                   // Para el eje Y, configuramos en 1
+
+  // Asegurarse de que el tamaño local en X no exceda el ancho
+  if (local_size_x > width)
+  {
+    local_size_x = width;
+  }
+
+  // Definir el tamaño global
+  size_t global_size_x = width;
+  size_t global_size_y = height;
+
+  size_t local_size[2] = {local_size_x, local_size_y};
+  size_t global_size[2] = {global_size_x, global_size_y};
+  // size_t local_size[2] = {128, 128}; // Define local_size as an array of size_t
+  // size_t global_size[2] = {static_cast<size_t>(count), static_cast<size_t>(count)};
 
   err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
   cl_error(err, "Failed to launch kernel to the device");
