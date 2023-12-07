@@ -255,22 +255,21 @@ int main(int argc, char **argv)
 
   // Launch Kernel
 
-  size_t max_work_group_size = 256;
-  size_t local_size_x = max_work_group_size; // Establecer el tamaño local máximo para el eje X
-  size_t local_size_y = 1;                   // Para el eje Y, configuramos en 1
+  // Ajustar el tamaño global y local para que sea divisible uniformemente
+  size_t local_size[2] = {256, 1}; // Tamaño local ajustado a 256 en X y 1 en Y
+  size_t global_size[2] = {width, height};
 
-  // Asegurarse de que el tamaño local en X no exceda el ancho
-  if (local_size_x > width)
+  // Asegurarse de que el tamaño global sea divisible uniformemente por el tamaño local
+  size_t remainder_x = width % local_size[0];
+  size_t remainder_y = height % local_size[1];
+
+  if (remainder_x != 0 || remainder_y != 0)
   {
-    local_size_x = width;
+    // Si no es divisible uniformemente, ajustar el tamaño global
+    global_size[0] = (width + local_size[0] - remainder_x);
+    global_size[1] = (height + local_size[1] - remainder_y);
   }
 
-  // Definir el tamaño global
-  size_t global_size_x = width;
-  size_t global_size_y = height;
-
-  size_t local_size[2] = {local_size_x, local_size_y};
-  size_t global_size[2] = {global_size_x, global_size_y};
   // size_t local_size[2] = {128, 128}; // Define local_size as an array of size_t
   // size_t global_size[2] = {static_cast<size_t>(count), static_cast<size_t>(count)};
 
