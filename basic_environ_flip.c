@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 
   // Ajustar el tamaño global y local para que sea divisible uniformemente
   size_t local_size[2] = {256, 1}; // Tamaño local ajustado a 256 en X y 1 en Y
-  size_t global_size[2] = {width, height};
+  size_t global_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
 
   // Asegurarse de que el tamaño global sea divisible uniformemente por el tamaño local
   size_t remainder_x = width % local_size[0];

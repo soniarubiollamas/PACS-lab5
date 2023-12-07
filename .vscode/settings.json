@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "type_traits": "c",
-        "iostream": "c"
+        "iostream": "c",
+        "xiosbase": "c"
     }
 }
