@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   cl_error(err, "Failed to create a command queue\n");
 
   // Calculate size of the file
-  FILE *fileHandler = fopen("kernel.cl", "r"); // put path to kernel.cl
+  FILE *fileHandler = fopen("kernel_flip.cl", "r"); // put path to kernel.cl
   // FILE *fopen(const char *filename, const char *mode)
   fseek(fileHandler, 0, SEEK_END);
   size_t fileSize = ftell(fileHandler);
