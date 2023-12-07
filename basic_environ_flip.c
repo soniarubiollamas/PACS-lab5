@@ -232,7 +232,7 @@ int main(int argc, char **argv)
   // float out_host_object = (float) malloc(sizeof(float) * count);
 
   // Create memory buffers for the image data
-  cl_mem in_image_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(unsigned char) * width * height * 3, img.data(), &err);
+  cl_mem in_image_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned char) * width * height * 3, img.data(), &err);
   cl_error(err, "Failed to create memory buffer at device\n");
   cl_mem out_image_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(unsigned char) * width * height * 3, NULL, &err);
   cl_error(err, "Failed to create memory buffer at device\n");
