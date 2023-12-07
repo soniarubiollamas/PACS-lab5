@@ -47,14 +47,16 @@ int main(int argc, char **argv)
   const char *output_image_path = argv[2];
   int width = atoi(argv[3]);
   int height = atoi(argv[4]);
+  // Calculate the total number of pixels in the image
+  int count = width * height;
 
   int err;                // error code returned from api calls
   size_t t_buf = 50;      // size of str_buffer
   char str_buffer[t_buf]; // auxiliary buffer
   size_t e_buf;           // effective size of str_buffer in use
 
-  size_t global_size[2]; // global domain size for our calculation
-  size_t local_size[2];  // local domain size for our calculation
+  // size_t global_size[2]; // global domain size for our calculation
+  // size_t local_size[2];  // local domain size for our calculation
 
   const cl_uint num_platforms_ids = 10;                         // max of allocatable platforms
   cl_platform_id platforms_ids[num_platforms_ids];              // array of platforms
@@ -107,6 +109,65 @@ int main(int argc, char **argv)
     }
   }
   // **Task**: print on the screen the cache size, global mem size, local memsize, max work group size, profiling timer resolution and ... of each device
+  // print the cache size
+  for (int i = 0; i < n_platforms; i++)
+  {
+    for (int j = 0; j < n_devices[i]; j++)
+    {
+      cl_ulong cache_size;
+      err = clGetDeviceInfo(devices_ids[i][j], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cache_size), &cache_size, NULL);
+      cl_error(err, "clGetDeviceInfo: Getting device cache size");
+      printf("\t\t [%d]-Platform [%d]-Device CL_DEVICE_GLOBAL_MEM_CACHE_SIZE: %lu\n\n", i, j, cache_size);
+    }
+  }
+
+  // print the global mem size
+  for (int i = 0; i < n_platforms; i++)
+  {
+    for (int j = 0; j < n_devices[i]; j++)
+    {
+      cl_ulong global_mem_size;
+      err = clGetDeviceInfo(devices_ids[i][j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(global_mem_size), &global_mem_size, NULL);
+      cl_error(err, "clGetDeviceInfo: Getting device global mem size");
+      printf("\t\t [%d]-Platform [%d]-Device CL_DEVICE_GLOBAL_MEM_SIZE: %lu\n\n", i, j, global_mem_size);
+    }
+  }
+
+  // print the local mem size
+  for (int i = 0; i < n_platforms; i++)
+  {
+    for (int j = 0; j < n_devices[i]; j++)
+    {
+      cl_ulong local_mem_size;
+      err = clGetDeviceInfo(devices_ids[i][j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size), &local_mem_size, NULL);
+      cl_error(err, "clGetDeviceInfo: Getting device local mem size");
+      printf("\t\t [%d]-Platform [%d]-Device CL_DEVICE_LOCAL_MEM_SIZE: %lu\n\n", i, j, local_mem_size);
+    }
+  }
+
+  // print the max work group size
+  for (int i = 0; i < n_platforms; i++)
+  {
+    for (int j = 0; j < n_devices[i]; j++)
+    {
+      size_t max_work_group_size;
+      err = clGetDeviceInfo(devices_ids[i][j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_work_group_size), &max_work_group_size, NULL);
+      cl_error(err, "clGetDeviceInfo: Getting device max work group size");
+      printf("\t\t [%d]-Platform [%d]-Device CL_DEVICE_MAX_WORK_GROUP_SIZE: %lu\n\n", i, j, max_work_group_size);
+    }
+  }
+
+  // print the profiling timer resolution
+  for (int i = 0; i < n_platforms; i++)
+  {
+    for (int j = 0; j < n_devices[i]; j++)
+    {
+      size_t profiling_timer_resolution;
+      err = clGetDeviceInfo(devices_ids[i][j], CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(profiling_timer_resolution), &profiling_timer_resolution, NULL);
+      cl_error(err, "clGetDeviceInfo: Getting device profiling timer resolution");
+      printf("\t\t [%d]-Platform [%d]-Device CL_DEVICE_PROFILING_TIMER_RESOLUTION: %lu\n\n", i, j, profiling_timer_resolution);
+    }
+  }
 
   // Read the image using CImg
   CImg<unsigned char> img(width, height, 1, 3); // Create an empty image with the specified width and height
@@ -195,9 +256,9 @@ int main(int argc, char **argv)
   cl_error(err, "Failed to set argument 3\n");
 
   // Launch Kernel
-  local_size = 128;
-  global_size = count;
-  err = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+  size_t local_size[2] = {128, 128};      // Define local_size as an array of size_t
+  size_t global_size[2] = {count, count}; // Define global_size as an array of size_t and use 'count' if it's declared
+  err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
   cl_error(err, "Failed to launch kernel to the device");
 
   // Read the modified image data back to the host (from device to host)
