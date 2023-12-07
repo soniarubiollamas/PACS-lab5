@@ -256,8 +256,9 @@ int main(int argc, char **argv)
   cl_error(err, "Failed to set argument 3\n");
 
   // Launch Kernel
-  size_t local_size[2] = {128, 128};      // Define local_size as an array of size_t
-  size_t global_size[2] = {count, count}; // Define global_size as an array of size_t and use 'count' if it's declared
+  size_t local_size[2] = {128, 128}; // Define local_size as an array of size_t
+  size_t global_size[2] = {static_cast<size_t>(count), static_cast<size_t>(count)};
+
   err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_size, local_size, 0, NULL, NULL);
   cl_error(err, "Failed to launch kernel to the device");
 
