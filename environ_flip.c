@@ -38,17 +38,14 @@ void cl_error(cl_int code, const char *string)
 // program for flipping and image
 int main(int argc, char **argv)
 {
-  if (argc != 5)
+  if (argc != 3)
   {
-    printf("Usage: %s <image_path> <output_path> <width> <height>\n", argv[0]);
+    printf("Usage: %s <image_path> <output_path>\n", argv[0]);
+    return -1;
   }
 
   const char *input_image_path = argv[1];
   const char *output_image_path = argv[2];
-  int width = atoi(argv[3]);
-  int height = atoi(argv[4]);
-  // Calculate the total number of pixels in the image
-  int count = width * height;
 
   int err;                // error code returned from api calls
   size_t t_buf = 50;      // size of str_buffer
@@ -170,8 +167,9 @@ int main(int argc, char **argv)
   }
 
   // Read the image using CImg
-  CImg<unsigned char> img(width, height, 1, 3); // Create an empty image with the specified width and height
-  img.load_jpeg(input_image_path);              // Load the image from the specified file
+  CImg<unsigned char> img(input_image_path);
+  int width = img.width();
+  int height = img.height();
 
   // 3. Create a context, with a device
   cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platforms_ids[0], 0};
@@ -232,23 +230,22 @@ int main(int argc, char **argv)
   // float out_host_object = (float) malloc(sizeof(float) * count);
 
   // Create memory buffers for the image data
-  cl_mem in_image_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned char) * width * height * 3, img.data(), &err);
+  cl_mem in_image_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned char) * width * height * img.spectrum(), img.data(), &err);
   cl_error(err, "Failed to create memory buffer at device\n");
-  cl_mem out_image_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(unsigned char) * width * height * 3, NULL, &err);
+  cl_mem out_image_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(unsigned char) * width * height * img.spectrum(), NULL, &err);
   cl_error(err, "Failed to create memory buffer at device\n");
 
   // Copy the image data to the memory buffer (from host to device)
   // Write date into the memory object
-  err = clEnqueueWriteBuffer(command_queue, in_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * 3,
-                             img.data(), 0, NULL, NULL);
+  err = clEnqueueWriteBuffer(command_queue, in_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * img.spectrum(), img.data(), 0, NULL, NULL);
   cl_error(err, "Failed to enqueue a write command\n");
 
   // Set the arguments to our compute kernel
   err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &in_image_buffer);
   cl_error(err, "Failed to set argument 0\n");
-  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &out_image_buffer);
-  cl_error(err, "Failed to set argument 1\n");
   // Third, the number of elements of the input and output arrays.
+  err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &out_image_buffer);
+  cl_error(err, "Failed to set argument 1 for output buffer\n");
   err = clSetKernelArg(kernel, 2, sizeof(int), &width);
   // cl_int clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value)
   cl_error(err, "Failed to set argument 2\n");
@@ -258,8 +255,10 @@ int main(int argc, char **argv)
   // Launch Kernel
 
   // Ajustar el tamaño global y local para que sea divisible uniformemente
-  size_t local_size[2] = {256, 1}; // Tamaño local ajustado a 256 en X y 1 en Y
-  size_t global_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
+  size_t local_size[2] = {16, 16}; // Puede ajustar este tamaño según su dispositivo
+  size_t global_size[2] = {
+      ((width + local_size[0] - 1) / local_size[0]) * local_size[0],
+      ((height + local_size[1] - 1) / local_size[1]) * local_size[1]};
 
   // Asegurarse de que el tamaño global sea divisible uniformemente por el tamaño local
   size_t remainder_x = width % local_size[0];
@@ -279,8 +278,8 @@ int main(int argc, char **argv)
   cl_error(err, "Failed to launch kernel to the device");
 
   // Read the modified image data back to the host (from device to host)
-  unsigned char *out_image_data = (unsigned char *)malloc(sizeof(unsigned char) * width * height * 3);
-  err = clEnqueueReadBuffer(command_queue, out_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * 3, out_image_data, 0, NULL, NULL);
+  unsigned char *out_image_data = (unsigned char *)malloc(sizeof(unsigned char) * width * height * img.spectrum());
+  err = clEnqueueReadBuffer(command_queue, out_image_buffer, CL_TRUE, 0, sizeof(unsigned char) * width * height * img.spectrum(), out_image_data, 0, NULL, NULL);
   cl_error(err, "Failed to read modified image data from device\n");
 
   // Save the modified image data to the output path

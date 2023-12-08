@@ -2,6 +2,12 @@
     "files.associations": {
         "type_traits": "c",
         "iostream": "c",
-        "xiosbase": "c"
+        "xiosbase": "c",
+        "array": "c",
+        "ranges": "c",
+        "span": "c",
+        "vector": "c",
+        "xstring": "c",
+        "xutility": "c"
     }
 }
